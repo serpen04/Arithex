@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { signUp, logIn, googleLogin, logOut, onAuthChange } from "./authService";
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -74,7 +75,6 @@ const styles = `
 
   .app { display: flex; flex-direction: column; min-height: 100vh; max-width: 430px; margin: 0 auto; background: var(--bg); position: relative; box-shadow: 0 0 80px rgba(255,107,43,0.15); }
 
-  /* SPLASH */
   .splash { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); position: relative; overflow: hidden; }
   .splash-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255,107,43,0.18) 0%, transparent 70%), radial-gradient(ellipse 40% 40% at 80% 80%, rgba(245,200,66,0.08) 0%, transparent 60%); }
   .splash-rings { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
@@ -90,7 +90,6 @@ const styles = `
   .splash-loader-bar { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; animation: loadBar 2.2s ease-in-out forwards; }
   @keyframes loadBar { 0% { width: 0%; } 100% { width: 100%; } }
 
-  /* ONBOARDING */
   .onboarding { height: 100vh; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
   .onboard-slide { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 32px; text-align: center; animation: fadeUp 0.5s ease; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -103,17 +102,16 @@ const styles = `
   .dot.active { background: var(--accent); width: 20px; }
   .onboard-actions { padding: 24px 32px 40px; display: flex; flex-direction: column; gap: 12px; }
 
-  /* BUTTONS */
   .btn { display: flex; align-items: center; justify-content: center; gap: 8px; border: none; cursor: pointer; font-family: var(--font-body); font-size: 15px; font-weight: 600; border-radius: 14px; transition: all 0.2s; padding: 16px 24px; width: 100%; }
   .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
   .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,107,43,0.35); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--accent); }
   .btn-ghost { background: transparent; color: var(--muted); width: auto; padding: 8px 0; font-size: 14px; }
   .btn-sm { padding: 10px 20px; font-size: 13px; border-radius: 10px; width: auto; }
   .btn-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
 
-  /* AUTH */
   .auth-screen { min-height: 100vh; display: flex; flex-direction: column; padding: 60px 24px 32px; background: var(--bg); }
   .auth-header { margin-bottom: 40px; }
   .auth-back { background: var(--card); border: 1px solid var(--border); border-radius: 12px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; margin-bottom: 32px; color: var(--text); }
@@ -135,7 +133,6 @@ const styles = `
   .role-btn { flex: 1; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-family: var(--font-body); font-size: 14px; font-weight: 600; background: transparent; color: var(--muted); transition: all 0.2s; }
   .role-btn.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
 
-  /* NAV */
   .bottom-nav { position: sticky; bottom: 0; background: rgba(17,17,24,0.95); backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; padding: 8px 0 20px; z-index: 50; }
   .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 8px; transition: all 0.2s; }
   .nav-icon { font-size: 20px; }
@@ -143,13 +140,11 @@ const styles = `
   .nav-item.active .nav-label { color: var(--accent); }
   .nav-item.active .nav-icon { transform: translateY(-2px); }
 
-  /* HEADER */
   .screen-header { padding: 56px 20px 16px; display: flex; align-items: center; justify-content: space-between; }
   .header-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; }
   .header-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .avatar { width: 40px; height: 40px; border-radius: 12px; object-fit: cover; border: 2px solid var(--accent); cursor: pointer; }
 
-  /* HOME */
   .home-banner { margin: 0 20px 20px; background: linear-gradient(135deg, #1a0e00, #2d1500); border: 1px solid rgba(255,107,43,0.3); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
   .home-banner::after { content: '🎵'; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 48px; opacity: 0.3; }
   .home-banner-label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent2); font-weight: 600; margin-bottom: 6px; }
@@ -180,7 +175,6 @@ const styles = `
   .verified-badge { position: absolute; top: 8px; right: 8px; background: rgba(34,197,94,0.9); border-radius: 6px; padding: 3px 6px; font-size: 10px; font-weight: 700; color: #fff; }
   .trending-badge { position: absolute; top: 8px; left: 8px; background: rgba(255,107,43,0.9); border-radius: 6px; padding: 3px 6px; font-size: 10px; font-weight: 700; color: #fff; }
 
-  /* SEARCH */
   .search-bar { margin: 0 20px 20px; position: relative; }
   .search-input { width: 100%; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 14px 16px 14px 48px; color: var(--text); font-family: var(--font-body); font-size: 15px; outline: none; transition: border-color 0.2s; }
   .search-input:focus { border-color: var(--accent); }
@@ -200,11 +194,9 @@ const styles = `
   .rating-row { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
   .rating-star { color: var(--gold); font-size: 12px; }
   .rating-val { font-size: 13px; font-weight: 700; }
-  .rating-count { font-size: 12px; color: var(--muted); }
   .tag-row { display: flex; gap: 4px; flex-wrap: wrap; }
   .tag { background: rgba(255,107,43,0.12); border: 1px solid rgba(255,107,43,0.25); border-radius: 6px; padding: 2px 8px; font-size: 11px; color: var(--accent2); font-weight: 600; }
 
-  /* ARTIST PROFILE */
   .profile-hero { position: relative; }
   .profile-hero img { width: 100%; height: 280px; object-fit: cover; display: block; }
   .profile-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(10,10,15,0.95) 0%, transparent 50%); }
@@ -233,9 +225,7 @@ const styles = `
   .pricing-card { background: linear-gradient(135deg, rgba(255,107,43,0.1), rgba(245,200,66,0.05)); border: 1px solid rgba(255,107,43,0.3); border-radius: 14px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .pricing-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
   .pricing-val { font-family: var(--font-display); font-size: 24px; font-weight: 800; color: var(--accent); }
-  .profile-book-btn { position: sticky; bottom: 80px; margin: 0 0 16px; }
 
-  /* BOOKING FLOW */
   .booking-screen { min-height: 100vh; padding: 56px 24px 100px; background: var(--bg); }
   .booking-step { animation: fadeUp 0.4s ease; }
   .booking-title { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 6px; }
@@ -268,7 +258,6 @@ const styles = `
   .confirm-title { font-family: var(--font-display); font-size: 22px; font-weight: 800; margin-bottom: 6px; color: var(--success); }
   .confirm-id { font-size: 13px; color: var(--muted); }
 
-  /* BOOKINGS */
   .bookings-list { padding: 0 20px; display: flex; flex-direction: column; gap: 12px; }
   .booking-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; gap: 12px; cursor: pointer; }
   .booking-card img { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
@@ -285,7 +274,6 @@ const styles = `
   .tab { flex: 1; padding: 10px; border-radius: 10px; border: none; cursor: pointer; font-family: var(--font-body); font-size: 13px; font-weight: 600; background: transparent; color: var(--muted); transition: all 0.2s; }
   .tab.active { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
 
-  /* CHAT */
   .chat-list { display: flex; flex-direction: column; padding: 0 20px; gap: 4px; }
   .chat-item { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
   .chat-avatar { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; border: 2px solid var(--border); flex-shrink: 0; }
@@ -312,8 +300,6 @@ const styles = `
   .chat-input { flex: 1; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 16px; color: var(--text); font-family: var(--font-body); font-size: 15px; outline: none; }
   .chat-send { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 14px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; flex-shrink: 0; }
 
-  /* PROFILE PAGE */
-  .profile-page { padding: 56px 20px 100px; }
   .user-card { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding: 20px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); }
   .user-avatar-lg { width: 64px; height: 64px; border-radius: 16px; object-fit: cover; border: 2px solid var(--accent); }
   .user-name { font-family: var(--font-display); font-size: 20px; font-weight: 800; margin-bottom: 2px; }
@@ -326,8 +312,6 @@ const styles = `
   .menu-label { font-size: 15px; font-weight: 500; flex: 1; }
   .menu-arrow { color: var(--muted); font-size: 16px; }
 
-  /* ARTIST DASHBOARD */
-  .artist-dash { padding: 56px 20px 100px; }
   .earnings-card { background: linear-gradient(135deg, rgba(255,107,43,0.15), rgba(245,200,66,0.08)); border: 1px solid rgba(255,107,43,0.3); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
   .earnings-label { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
   .earnings-amount { font-family: var(--font-display); font-size: 36px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
@@ -343,8 +327,6 @@ const styles = `
   .req-amount { font-size: 16px; font-weight: 800; color: var(--accent); }
   .req-actions { display: flex; gap: 8px; }
 
-  /* ADMIN */
-  .admin-screen { padding: 56px 20px 100px; }
   .admin-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
   .admin-stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
   .admin-stat-val { font-family: var(--font-display); font-size: 24px; font-weight: 800; margin-bottom: 2px; }
@@ -361,17 +343,14 @@ const styles = `
   .verify-cat { font-size: 12px; color: var(--muted); }
   .verify-actions { display: flex; gap: 6px; }
 
-  /* TOAST */
   .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px 20px; font-size: 14px; font-weight: 600; z-index: 1000; animation: toastIn 0.3s ease; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
   .toast.success { border-color: var(--success); color: var(--success); }
   .toast.error { border-color: var(--danger); color: var(--danger); }
   @keyframes toastIn { from { opacity: 0; top: 0; } to { opacity: 1; top: 20px; } }
 
-  /* SCROLLABLE CONTENT */
   .scroll-content { flex: 1; overflow-y: auto; scrollbar-width: none; }
   .scroll-content::-webkit-scrollbar { display: none; }
   .pb-100 { padding-bottom: 100px; }
-
   select.form-input { appearance: none; }
   textarea.form-input { resize: none; min-height: 80px; }
 `;
@@ -396,7 +375,7 @@ function StarRating({ rating }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function AriTHEX() {
   const [screen, setScreen] = useState("splash");
-  const [role, setRole] = useState(null); // customer | artist | admin
+  const [role, setRole] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [selectedArtist, setSelectedArtist] = useState(null);
   const [bookingArtist, setBookingArtist] = useState(null);
@@ -417,12 +396,29 @@ export default function AriTHEX() {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
   const [loginRole, setLoginRole] = useState("customer");
 
+  // ── SUPABASE AUTH STATE ──
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+
+  useEffect(() => {
+    onAuthChange((supabaseUser) => {
+      if (supabaseUser) {
+        setUser(supabaseUser);
+        setRole(supabaseUser.user_metadata?.role || "customer");
+        setScreen("main");
+        setActiveTab(supabaseUser.user_metadata?.role === "admin" ? "admin" : "home");
+      } else {
+        setUser(null);
+      }
+    });
+  }, []);
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast({ msg: "", type: "success" }), 2500);
   };
 
-  // Splash
+  // Splash auto-advance
   useEffect(() => {
     if (screen === "splash") setTimeout(() => setScreen("onboarding"), 2400);
   }, [screen]);
@@ -512,20 +508,43 @@ export default function AriTHEX() {
           <input className="form-input" type="password" placeholder="••••••••" value={formData.password} onChange={e => setFormData(f => ({ ...f, password: e.target.value }))} />
         </div>
 
-        <button className="btn btn-primary" style={{ marginBottom: 16 }} onClick={() => {
-          setRole(loginRole);
-          setScreen("main");
-          showToast(`Welcome to AriTHEX! 🎉`);
-          setActiveTab(loginRole === "admin" ? "admin" : "home");
-        }}>
-          {authMode === "login" ? "Sign In" : "Create Account"}
+        {/* ── REAL SUPABASE AUTH BUTTON ── */}
+        <button
+          className="btn btn-primary"
+          style={{ marginBottom: 16 }}
+          disabled={authLoading}
+          onClick={async () => {
+            setAuthLoading(true);
+            try {
+              if (authMode === "login") {
+                await logIn(formData.email, formData.password);
+                showToast("Welcome back! 🎉");
+              } else {
+                await signUp(formData.email, formData.password, formData.name, loginRole);
+                showToast("Check your email to confirm! 📧");
+              }
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+            setAuthLoading(false);
+          }}>
+          {authLoading ? "Please wait..." : authMode === "login" ? "Sign In" : "Create Account"}
         </button>
 
         <div className="auth-divider"><div className="auth-divider-line" /><span>or</span><div className="auth-divider-line" /></div>
-        <button className="social-btn" onClick={() => { setRole(loginRole); setScreen("main"); showToast("Signed in with Google! 🎉"); setActiveTab(loginRole === "admin" ? "admin" : "home"); }}>
+
+        {/* ── REAL GOOGLE LOGIN ── */}
+        <button className="social-btn" onClick={async () => {
+          try {
+            await googleLogin();
+          } catch (err) {
+            showToast("Google login failed", "error");
+          }
+        }}>
           <span>🌐</span> Continue with Google
         </button>
-        <button className="social-btn" onClick={() => { setRole(loginRole); setScreen("main"); showToast("OTP sent! 📱"); }}>
+
+        <button className="social-btn" onClick={() => showToast("OTP coming soon! 📱")}>
           <span>📱</span> Continue with OTP
         </button>
 
@@ -539,8 +558,7 @@ export default function AriTHEX() {
     </div>
   );
 
-  // ── MAIN APP ──
-  // Artist profile view
+  // ── ARTIST PROFILE VIEW ──
   if (selectedArtist) {
     const artist = selectedArtist;
     const reviews = REVIEWS_MAP[artist.id] || [];
@@ -562,29 +580,24 @@ export default function AriTHEX() {
               </div>
             </div>
           </div>
-
           <div className="profile-body">
             <div className="profile-stats">
               <div className="stat-box"><div className="stat-val">{artist.rating}</div><div className="stat-label">Rating</div></div>
               <div className="stat-box"><div className="stat-val">{artist.bookings}</div><div className="stat-label">Bookings</div></div>
               <div className="stat-box"><div className="stat-val">{artist.experience}yr</div><div className="stat-label">Experience</div></div>
             </div>
-
             <div className="profile-section">
               <StarRating rating={artist.rating} />
               <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>{artist.reviews} verified reviews</div>
             </div>
-
             <div className="profile-section">
               <div className="profile-section-title">About</div>
               <div className="profile-bio">{artist.bio}</div>
             </div>
-
             <div className="profile-section">
               <div className="profile-section-title">Specializations</div>
               <div className="tag-row">{artist.tags.map(t => <span key={t} className="tag">{t}</span>)}</div>
             </div>
-
             {artist.gallery?.length > 0 && (
               <div className="profile-section">
                 <div className="profile-section-title">Gallery</div>
@@ -593,7 +606,6 @@ export default function AriTHEX() {
                 </div>
               </div>
             )}
-
             <div className="pricing-card">
               <div>
                 <div className="pricing-label">Starting from</div>
@@ -601,7 +613,6 @@ export default function AriTHEX() {
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => { setChatOpen(artist.id); setSelectedArtist(null); setActiveTab("chat"); }}>💬 Chat</button>
             </div>
-
             {reviews.length > 0 && (
               <div className="profile-section">
                 <div className="profile-section-title">Reviews</div>
@@ -621,7 +632,6 @@ export default function AriTHEX() {
             )}
           </div>
         </div>
-
         <div style={{ padding: "0 20px 32px", background: "var(--bg)", borderTop: "1px solid var(--border)" }}>
           <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => {
             setBookingArtist(artist);
@@ -637,7 +647,7 @@ export default function AriTHEX() {
     );
   }
 
-  // Booking flow
+  // ── BOOKING FLOW ──
   if (screen === "booking" && bookingArtist) {
     const totalSteps = 4;
     const calDays = [];
@@ -648,17 +658,13 @@ export default function AriTHEX() {
       const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
       if (new Date(dateStr).getMonth() === today.getMonth()) calDays.push({ d, dateStr, avail: bookingArtist.availability?.includes(dateStr) });
     }
-
     return (
       <div className="app">
         <style>{styles}</style>
         <Toast {...toast} />
         <div className="booking-screen">
-          <div className="profile-back-btn" style={{ position: "static", marginBottom: 20, width: 40, height: 40 }} onClick={() => { setScreen("main"); setSelectedArtist(bookingArtist); setTimeout(() => setSelectedArtist(bookingArtist), 10); }}>←</div>
-
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${(bookingStep / totalSteps) * 100}%` }} />
-          </div>
+          <div className="profile-back-btn" style={{ position: "static", marginBottom: 20, width: 40, height: 40 }} onClick={() => { setScreen("main"); setSelectedArtist(bookingArtist); }}>←</div>
+          <div className="progress-bar"><div className="progress-fill" style={{ width: `${(bookingStep / totalSteps) * 100}%` }} /></div>
 
           {bookingStep === 1 && (
             <div className="booking-step">
@@ -666,9 +672,7 @@ export default function AriTHEX() {
               <div className="booking-sub">Select your event type</div>
               <div className="event-type-grid">
                 {EVENT_TYPES.map(et => (
-                  <div key={et} className={`event-type-btn ${bookingData.eventType === et ? "selected" : ""}`} onClick={() => setBookingData(d => ({ ...d, eventType: et }))}>
-                    {et}
-                  </div>
+                  <div key={et} className={`event-type-btn ${bookingData.eventType === et ? "selected" : ""}`} onClick={() => setBookingData(d => ({ ...d, eventType: et }))}>{et}</div>
                 ))}
               </div>
               <button className="btn btn-primary" disabled={!bookingData.eventType} onClick={() => setBookingStep(2)}>Next →</button>
@@ -679,23 +683,15 @@ export default function AriTHEX() {
             <div className="booking-step">
               <div className="booking-title">Pick a Date</div>
               <div className="booking-sub">Green dates = artist available</div>
-              <div className="cal-header">
-                {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => <div key={d} className="cal-day-label">{d}</div>)}
-              </div>
+              <div className="cal-header">{["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => <div key={d} className="cal-day-label">{d}</div>)}</div>
               <div className="calendar-grid">
-                {calDays.map((d, i) => d === null ? (
-                  <div key={i} className="cal-day empty" />
-                ) : (
+                {calDays.map((d, i) => d === null ? <div key={i} className="cal-day empty" /> : (
                   <div key={i} className={`cal-day ${d.avail ? "available" : ""} ${bookingData.date === d.dateStr ? "selected" : ""}`}
                     style={d.avail && bookingData.date !== d.dateStr ? { borderColor: "var(--success)", color: "var(--success)" } : {}}
                     onClick={() => d.avail && setBookingData(bd => ({ ...bd, date: d.dateStr }))}>
                     {d.d}
                   </div>
                 ))}
-              </div>
-              <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--success)" }}><span>●</span> Available</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)" }}><span>●</span> Unavailable</div>
               </div>
               <div className="form-group">
                 <label className="form-label">Venue / Location</label>
@@ -719,11 +715,11 @@ export default function AriTHEX() {
                 <div className="summary-row"><span className="summary-label">Venue</span><span className="summary-val">{bookingData.venue}</span></div>
                 <div className="summary-row"><span className="summary-label">Total</span><span className="summary-val summary-total">₹{bookingArtist.price.toLocaleString()}</span></div>
               </div>
-              <div className="payment-option selected" onClick={() => setBookingData(d => ({ ...d, payment: "advance" }))}>
+              <div className={`payment-option ${bookingData.payment === "advance" ? "selected" : ""}`} onClick={() => setBookingData(d => ({ ...d, payment: "advance" }))}>
                 <div><div className="payment-option-label">Advance (50%)</div><div className="payment-option-sub">₹{(bookingArtist.price / 2).toLocaleString()} now, rest on event day</div></div>
                 <span>{bookingData.payment === "advance" ? "◉" : "○"}</span>
               </div>
-              <div className="payment-option" onClick={() => setBookingData(d => ({ ...d, payment: "full" }))}>
+              <div className={`payment-option ${bookingData.payment === "full" ? "selected" : ""}`} onClick={() => setBookingData(d => ({ ...d, payment: "full" }))}>
                 <div><div className="payment-option-label">Full Payment</div><div className="payment-option-sub">₹{bookingArtist.price.toLocaleString()} — 5% discount applied</div></div>
                 <span>{bookingData.payment === "full" ? "◉" : "○"}</span>
               </div>
@@ -759,7 +755,7 @@ export default function AriTHEX() {
     );
   }
 
-  // Chat screen
+  // ── CHAT SCREEN ──
   if (chatOpen && activeTab === "chat" && chatMessages[chatOpen]) {
     const conv = chatMessages[chatOpen];
     return (
@@ -784,16 +780,14 @@ export default function AriTHEX() {
               onKeyDown={e => {
                 if (e.key === "Enter" && chatMsg.trim()) {
                   const now = new Date();
-                  const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`;
-                  setChatMessages(cm => ({ ...cm, [chatOpen]: { ...cm[chatOpen], messages: [...cm[chatOpen].messages, { from: "me", text: chatMsg, time: timeStr }] } }));
+                  setChatMessages(cm => ({ ...cm, [chatOpen]: { ...cm[chatOpen], messages: [...cm[chatOpen].messages, { from: "me", text: chatMsg, time: `${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}` }] } }));
                   setChatMsg("");
                 }
               }} />
             <button className="chat-send" onClick={() => {
               if (chatMsg.trim()) {
                 const now = new Date();
-                const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}`;
-                setChatMessages(cm => ({ ...cm, [chatOpen]: { ...cm[chatOpen], messages: [...cm[chatOpen].messages, { from: "me", text: chatMsg, time: timeStr }] } }));
+                setChatMessages(cm => ({ ...cm, [chatOpen]: { ...cm[chatOpen], messages: [...cm[chatOpen].messages, { from: "me", text: chatMsg, time: `${now.getHours()}:${String(now.getMinutes()).padStart(2,"0")}` }] } }));
                 setChatMsg("");
               }
             }}>➤</button>
@@ -815,22 +809,19 @@ export default function AriTHEX() {
       <div className="screen-header">
         <div>
           <div className="header-title">AriTHEX 🎵</div>
-          <div className="header-sub">Book India's finest talent</div>
+          <div className="header-sub">Welcome, {user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there"}!</div>
         </div>
         <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop" alt="" className="avatar" onClick={() => setActiveTab("profile")} />
       </div>
-
       <div className="search-bar" onClick={() => setActiveTab("search")}>
         <span className="search-icon">🔍</span>
         <input className="search-input" placeholder="Search artists, categories..." readOnly style={{ cursor: "pointer" }} />
       </div>
-
       <div className="home-banner">
         <div className="home-banner-label">🔥 Trending Now</div>
         <div className="home-banner-title">Book Top Artists for Your Events</div>
         <div className="home-banner-sub">500+ verified performers across India</div>
       </div>
-
       <div className="section-header"><div className="section-title">Categories</div></div>
       <div className="cats-scroll">
         {[{ id: "all", label: "All", icon: "🎯" }, ...CATEGORIES].map(c => (
@@ -840,7 +831,6 @@ export default function AriTHEX() {
           </div>
         ))}
       </div>
-
       <div className="section-header">
         <div className="section-title">🔥 Trending</div>
         <span className="see-all" onClick={() => setActiveTab("search")}>See all</span>
@@ -859,7 +849,6 @@ export default function AriTHEX() {
           </div>
         ))}
       </div>
-
       <div className="section-header">
         <div className="section-title">⭐ Featured</div>
         <span className="see-all" onClick={() => setActiveTab("search")}>See all</span>
@@ -969,12 +958,6 @@ export default function AriTHEX() {
             <div className="chat-time">{conv.messages[conv.messages.length - 1]?.time}</div>
           </div>
         ))}
-        {Object.keys(chatMessages).length === 0 && (
-          <div style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-            <div>No messages yet</div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -986,33 +969,35 @@ export default function AriTHEX() {
         <div className="user-card">
           <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&h=80&fit=crop" alt="" className="user-avatar-lg" />
           <div>
-            <div className="user-name">Rahul Sharma</div>
-            <div className="user-email">rahul@example.com</div>
-            <div style={{ marginTop: 4 }}><span className="status-badge status-confirmed">Customer</span></div>
+            <div className="user-name">{user?.user_metadata?.full_name || "User"}</div>
+            <div className="user-email">{user?.email}</div>
+            <div style={{ marginTop: 4 }}><span className="status-badge status-confirmed">{role || "Customer"}</span></div>
           </div>
         </div>
-
         <div className="menu-section">
           <div className="menu-title">Account</div>
           <div className="menu-item"><span className="menu-icon">👤</span><span className="menu-label">Edit Profile</span><span className="menu-arrow">›</span></div>
           <div className="menu-item"><span className="menu-icon">🔔</span><span className="menu-label">Notifications</span><span className="menu-arrow">›</span></div>
           <div className="menu-item"><span className="menu-icon">🔒</span><span className="menu-label">Privacy & Security</span><span className="menu-arrow">›</span></div>
         </div>
-
         <div className="menu-section">
           <div className="menu-title">Bookings</div>
           <div className="menu-item" onClick={() => setActiveTab("bookings")}><span className="menu-icon">📅</span><span className="menu-label">My Bookings</span><span className="menu-arrow">›</span></div>
           <div className="menu-item"><span className="menu-icon">❤️</span><span className="menu-label">Saved Artists</span><span className="menu-arrow">›</span></div>
           <div className="menu-item"><span className="menu-icon">⭐</span><span className="menu-label">My Reviews</span><span className="menu-arrow">›</span></div>
         </div>
-
         <div className="menu-section">
           <div className="menu-title">Support</div>
           <div className="menu-item"><span className="menu-icon">❓</span><span className="menu-label">Help Center</span><span className="menu-arrow">›</span></div>
           <div className="menu-item"><span className="menu-icon">📞</span><span className="menu-label">Contact Support</span><span className="menu-arrow">›</span></div>
         </div>
 
-        <button className="btn btn-danger" onClick={() => { setScreen("auth"); showToast("Logged out", "error"); }}>Sign Out</button>
+        {/* ── REAL SIGN OUT ── */}
+        <button className="btn btn-danger" onClick={async () => {
+          await logOut();
+          setScreen("auth");
+          showToast("Logged out", "error");
+        }}>Sign Out</button>
       </div>
     </div>
   );
@@ -1022,7 +1007,7 @@ export default function AriTHEX() {
       <div className="screen-header">
         <div>
           <div className="header-title">Dashboard</div>
-          <div className="header-sub">Welcome back, Arjun!</div>
+          <div className="header-sub">Welcome, {user?.user_metadata?.full_name || "Artist"}!</div>
         </div>
         <img src={ARTISTS[0].image} alt="" className="avatar" />
       </div>
@@ -1036,13 +1021,11 @@ export default function AriTHEX() {
             <div className="earnings-stat"><div className="earnings-stat-val">4.9 ⭐</div><div className="earnings-stat-label">Avg Rating</div></div>
           </div>
         </div>
-
         <div className="section-header" style={{ padding: 0, marginBottom: 14 }}>
           <div className="section-title">New Requests</div>
-          <span className="see-all">View All</span>
         </div>
-
-        {[{ event: "Wedding Reception", client: "Mehta Family", date: "Feb 24, 2024", venue: "Taj Palace, Delhi", amount: 25000 },
+        {[
+          { event: "Wedding Reception", client: "Mehta Family", date: "Feb 24, 2024", venue: "Taj Palace, Delhi", amount: 25000 },
           { event: "Corporate Party", client: "TechCorp India", date: "Mar 5, 2024", venue: "ITC Grand, Bangalore", amount: 30000 }
         ].map((req, i) => (
           <div key={i} className="req-card">
@@ -1051,26 +1034,11 @@ export default function AriTHEX() {
               <div className="req-amount">₹{req.amount.toLocaleString()}</div>
             </div>
             <div className="req-actions">
-              <button className="btn btn-sm" style={{ background: "rgba(34,197,94,0.15)", color: "var(--success)", border: "1px solid rgba(34,197,94,0.3)", flex: 1, borderRadius: 10 }}
-                onClick={() => showToast("Booking accepted! ✓")}>✓ Accept</button>
+              <button className="btn btn-sm" style={{ background: "rgba(34,197,94,0.15)", color: "var(--success)", border: "1px solid rgba(34,197,94,0.3)", flex: 1, borderRadius: 10 }} onClick={() => showToast("Booking accepted! ✓")}>✓ Accept</button>
               <button className="btn btn-danger btn-sm" style={{ flex: 1 }} onClick={() => showToast("Booking declined", "error")}>✗ Decline</button>
             </div>
           </div>
         ))}
-
-        <div className="section-header" style={{ padding: 0, margin: "20px 0 14px" }}>
-          <div className="section-title">My Profile</div>
-          <span className="see-all" onClick={() => setSelectedArtist(ARTISTS[0])}>Preview</span>
-        </div>
-        <div className="artist-card-lg" style={{ cursor: "pointer" }} onClick={() => showToast("Edit profile coming soon!")}>
-          <img src={ARTISTS[0].image} alt="" />
-          <div className="artist-card-lg-info">
-            <div className="artist-card-lg-name">{ARTISTS[0].name}</div>
-            <div className="artist-card-lg-meta">DJ • Mumbai</div>
-            <StarRating rating={ARTISTS[0].rating} />
-            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Tap to edit profile →</div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -1078,10 +1046,7 @@ export default function AriTHEX() {
   const renderAdmin = () => (
     <div className="scroll-content pb-100">
       <div className="screen-header">
-        <div>
-          <div className="header-title">Admin Panel</div>
-          <div className="header-sub">AriTHEX Control Center</div>
-        </div>
+        <div><div className="header-title">Admin Panel</div><div className="header-sub">AriTHEX Control Center</div></div>
         <span style={{ fontSize: 24 }}>🛡️</span>
       </div>
       <div style={{ padding: "0 20px" }}>
@@ -1091,52 +1056,29 @@ export default function AriTHEX() {
           <div className="admin-stat-card"><div className="admin-stat-val" style={{ color: "var(--success)" }}>₹{(ADMIN_STATS.revenue / 100000).toFixed(1)}L</div><div className="admin-stat-label">Revenue</div></div>
           <div className="admin-stat-card"><div className="admin-stat-val">{ADMIN_STATS.activeBookings}</div><div className="admin-stat-label">Active Bookings</div></div>
         </div>
-
         <div className="admin-action-btn" onClick={() => setAdminView(adminView === "verify" ? "dashboard" : "verify")}>
-          <span className="admin-action-icon">🔍</span>
-          <span className="admin-action-label">Artist Verification</span>
-          <span className="admin-action-badge">{pendingVerify.length}</span>
+          <span className="admin-action-icon">🔍</span><span className="admin-action-label">Artist Verification</span><span className="admin-action-badge">{pendingVerify.length}</span>
         </div>
         <div className="admin-action-btn" onClick={() => showToast("Booking monitor: 67 active")}>
-          <span className="admin-action-icon">📋</span>
-          <span className="admin-action-label">Manage Bookings</span>
-          <span className="admin-action-badge">{ADMIN_STATS.activeBookings}</span>
+          <span className="admin-action-icon">📋</span><span className="admin-action-label">Manage Bookings</span><span className="admin-action-badge">{ADMIN_STATS.activeBookings}</span>
         </div>
         <div className="admin-action-btn" onClick={() => showToast("3 disputes in queue", "error")}>
-          <span className="admin-action-icon">⚠️</span>
-          <span className="admin-action-label">Disputes</span>
-          <span className="admin-action-badge" style={{ background: "var(--danger)" }}>{ADMIN_STATS.disputes}</span>
+          <span className="admin-action-icon">⚠️</span><span className="admin-action-label">Disputes</span><span className="admin-action-badge" style={{ background: "var(--danger)" }}>{ADMIN_STATS.disputes}</span>
         </div>
-        <div className="admin-action-btn" onClick={() => showToast("User management opened")}>
-          <span className="admin-action-icon">👥</span>
-          <span className="admin-action-label">User Management</span>
-          <span className="menu-arrow">›</span>
-        </div>
-        <div className="admin-action-btn" onClick={() => showToast("Commission: 15% per booking")}>
-          <span className="admin-action-icon">💰</span>
-          <span className="admin-action-label">Commission Settings</span>
-          <span className="menu-arrow">›</span>
-        </div>
-
+        <div className="admin-action-btn"><span className="admin-action-icon">👥</span><span className="admin-action-label">User Management</span><span className="menu-arrow">›</span></div>
+        <div className="admin-action-btn"><span className="admin-action-icon">💰</span><span className="admin-action-label">Commission Settings</span><span className="menu-arrow">›</span></div>
         {adminView === "verify" && (
           <div style={{ marginTop: 20 }}>
             <div className="section-title" style={{ marginBottom: 14 }}>Pending Verifications</div>
             {pendingVerify.length === 0 ? (
-              <div style={{ textAlign: "center", color: "var(--success)", padding: 20, background: "var(--card)", borderRadius: 14, border: "1px solid var(--border)" }}>
-                ✓ All artists verified!
-              </div>
+              <div style={{ textAlign: "center", color: "var(--success)", padding: 20, background: "var(--card)", borderRadius: 14, border: "1px solid var(--border)" }}>✓ All artists verified!</div>
             ) : pendingVerify.map(a => (
               <div key={a.id} className="verify-card">
                 <img src={a.image} alt="" />
-                <div className="verify-info">
-                  <div className="verify-name">{a.name}</div>
-                  <div className="verify-cat">{CATEGORIES.find(c => c.id === a.category)?.label} • {a.city}</div>
-                </div>
+                <div className="verify-info"><div className="verify-name">{a.name}</div><div className="verify-cat">{CATEGORIES.find(c => c.id === a.category)?.label} • {a.city}</div></div>
                 <div className="verify-actions">
-                  <button className="btn btn-sm" style={{ background: "rgba(34,197,94,0.15)", color: "var(--success)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8 }}
-                    onClick={() => { setPendingVerify(v => v.filter(x => x.id !== a.id)); showToast(`${a.name} verified! ✓`); }}>✓</button>
-                  <button className="btn btn-danger btn-sm" style={{ borderRadius: 8 }}
-                    onClick={() => { setPendingVerify(v => v.filter(x => x.id !== a.id)); showToast(`${a.name} rejected`, "error"); }}>✗</button>
+                  <button className="btn btn-sm" style={{ background: "rgba(34,197,94,0.15)", color: "var(--success)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: 8 }} onClick={() => { setPendingVerify(v => v.filter(x => x.id !== a.id)); showToast(`${a.name} verified! ✓`); }}>✓</button>
+                  <button className="btn btn-danger btn-sm" style={{ borderRadius: 8 }} onClick={() => { setPendingVerify(v => v.filter(x => x.id !== a.id)); showToast(`${a.name} rejected`, "error"); }}>✗</button>
                 </div>
               </div>
             ))}
